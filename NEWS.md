@@ -1,5 +1,15 @@
 # tsibble (development version)
 
+* New declarative feature pipeline, `feature_pipeline()` / `feature_node()`,
+  which computes dependent features without horizontally binding columns from
+  the wrong series or time point. Each node declares its `inputs`, `outputs`
+  and `depends`, only sees the columns it declared, runs once in dependency
+  order, and its result is matched back on the key and index of the table it
+  was computed from. `compute_features()` runs a pipeline on a tsibble;
+  `feature_forecast()` fits on the historical features and predicts from the
+  future features, returning a forecast that covers exactly the future
+  key/index pairs. Missing, duplicated or extra keys, conflicting outputs,
+  dependency cycles and missing dependencies all fail explicitly.
 * Fixed `format.yearmonth()` incorrectly offseting years for non-week formats (e.g. `format = "%Y %b"`)
 * Fixed `as.ts()` failing for weekly (`yearweek`) tsibbles with recent versions of lubridate.
 * Fixed `interval_pull()` for `POSIXct` indices spaced by whole days, which

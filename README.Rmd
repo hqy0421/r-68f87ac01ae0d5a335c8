@@ -89,6 +89,38 @@ full_weather
 
 `fill_gaps()` also handles filling in time gaps by values or functions, and respects time zones for date-times. Wanna a quick overview of implicit missing values? Check out [`vignette("implicit-na")`](https://tsibble.tidyverts.org/articles/implicit-na.html).
 
+### `feature_pipeline()` to compute dependent features safely
+
+When features depend on one another, horizontally binding columns easily picks
+up values from another series or another time point. A feature pipeline makes
+the dependencies explicit: each `feature_node()` declares the columns it reads
+(`inputs`), the columns it produces (`outputs`) and the nodes it builds on
+(`depends`). Nodes run once, in dependency order, and every result is matched
+back on the key and index of the table it was computed from.
+
+```{r feature-pipeline}
+weather_features <- feature_pipeline(
+  feature_node(
+    "precip_lag",
+    function(x) mutate(x, precip_lag = lag(precip)),
+    outputs = "precip_lag", inputs = "precip"
+  ),
+  feature_node(
+    "precip_change",
+    function(x) mutate(x, precip_change = precip - precip_lag),
+    outputs = "precip_change", inputs = c("precip", "precip_lag")
+  )
+)
+compute_features(weather_tsbl, weather_features)
+```
+
+`feature_forecast()` runs the same pipeline on the historical and future data
+separately, and passes the resulting features to a pair of `fit()` and
+`predict()` functions: `fit()` sees the historical features plus the response,
+and `predict()` sees the future features only. The returned forecast covers
+exactly the future key/index pairs, and the tables the model saw are the ones
+returned.
+
 ### `index_by()` + `summarise()` to aggregate over calendar periods
 
 `index_by()` is the counterpart of `group_by()` in temporal context, but it groups the index only. In conjunction with `index_by()`, `summarise()` aggregates interested variables over time periods. `index_by()` goes hand in hand with the index functions including `as.Date()`, `yearweek()`, `yearmonth()`, and `yearquarter()`, as well as other friends from **lubridate**. For example, it would be of interest in computing average temperature and total precipitation per month, by applying `yearmonth()` to the index variable (referred to as `.`).

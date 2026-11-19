@@ -123,6 +123,49 @@ and respects time zones for date-times. Wanna a quick overview of
 implicit missing values? Check out
 [`vignette("implicit-na")`](https://tsibble.tidyverts.org/articles/implicit-na.html).
 
+### `feature_pipeline()` to compute dependent features safely
+
+When features depend on one another, horizontally binding columns easily
+picks up values from another series or another time point. A feature
+pipeline makes the dependencies explicit: each `feature_node()` declares
+the columns it reads (`inputs`), the columns it produces (`outputs`) and
+the nodes it builds on (`depends`). Nodes run once, in dependency order,
+and every result is matched back on the key and index of the table it was
+computed from.
+
+``` r
+weather_features <- feature_pipeline(
+  feature_node(
+    "precip_lag",
+    function(x) mutate(x, precip_lag = lag(precip)),
+    outputs = "precip_lag", inputs = "precip"
+  ),
+  feature_node(
+    "precip_change",
+    function(x) mutate(x, precip_change = precip - precip_lag),
+    outputs = "precip_change", inputs = c("precip", "precip_lag")
+  )
+)
+compute_features(weather_tsbl, weather_features)
+#> # A tsibble: 26,115 x 4 [1h] <America/New_York>
+#> # Key:       origin [3]
+#>   origin time_hour           precip_lag precip_change
+#>   <chr>  <dttm>                   <dbl>         <dbl>
+#> 1 EWR    2013-01-01 01:00:00         NA            NA
+#> 2 EWR    2013-01-01 02:00:00          0             0
+#> 3 EWR    2013-01-01 03:00:00          0             0
+#> 4 EWR    2013-01-01 04:00:00          0             0
+#> 5 EWR    2013-01-01 05:00:00          0             0
+#> # ℹ 26,110 more rows
+```
+
+`feature_forecast()` runs the same pipeline on the historical and future
+data separately, and passes the resulting features to a pair of `fit()`
+and `predict()` functions: `fit()` sees the historical features plus the
+response, and `predict()` sees the future features only. The returned
+forecast covers exactly the future key/index pairs, and the tables the
+model saw are the ones returned.
+
 ### `index_by()` + `summarise()` to aggregate over calendar periods
 
 `index_by()` is the counterpart of `group_by()` in temporal context, but

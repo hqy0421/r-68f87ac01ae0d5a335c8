@@ -54,6 +54,17 @@ reference:
     - group_by_key
     - filter_index
 
+- title: Declarative feature pipeline
+  desc: >
+    Declare feature nodes and their dependencies once, then compute the
+    features on the historical and future data separately, without borrowing
+    values across series or time points.
+  contents:
+    - feature_node
+    - feature_pipeline
+    - compute_features
+    - feature_forecast
+
 - title: Tidyverse methods
   desc: >
     Dplyr and tidyr verbs that support manipulating and reshaping `tbl_ts` in
